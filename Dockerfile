@@ -71,7 +71,19 @@ EXPOSE 8080
 CMD ["./payment-method-service"]
 
 # ==============================================
-# Stage 4: Production stage (Distroless)
+# Stage 4: Migrate stage (Alpine + psql para Job K8s)
+# Sin dependencia de builder - solo copia migrations/seeds (build rápido)
+# ==============================================
+FROM alpine:3.18 AS migrate
+
+RUN apk add --no-cache postgresql-client
+
+WORKDIR /app
+COPY migrations ./migrations
+COPY seeds ./seeds
+
+# ==============================================
+# Stage 5: Production stage (Distroless)
 # ==============================================
 FROM gcr.io/distroless/static-debian12:nonroot AS production
 
