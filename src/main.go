@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
+	tenantmw "github.com/mercadocercano/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	paymentMethodConfig "payment_method/src/payment_method/infrastructure/config"
@@ -26,6 +27,14 @@ func main() {
 	// Agregar middlewares básicos
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(tenantmw.TenantValidation(tenantmw.TenantValidationConfig{
+		JWTSecret: os.Getenv("JWT_SECRET"),
+		ExcludedRoutes: []string{
+			"/health",
+			"/api/v1/health",
+			"/metrics",
+		},
+	}))
 
 	// Configurar Prometheus metrics si está habilitado
 	prometheusEnabled := os.Getenv("PROMETHEUS_ENABLED")
