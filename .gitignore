@@ -40,3 +40,10 @@ build-errors.log
 
 # Air live reload
 .air.toml.bak
+
+tmp/
+.cache/
+.config/
+.gitconfig
+*-management/
+.cursorrules

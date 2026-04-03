@@ -5,11 +5,16 @@
 # ==============================================
 # Stage 1: Dependencies and cache optimization
 # ==============================================
-FROM golang:1.22-alpine AS deps
+FROM golang:1.24-alpine AS deps
 WORKDIR /app
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
+
+# Configure private Go modules
+ARG GITHUB_TOKEN
+ENV GOPRIVATE=github.com/mercadocercano/*
+RUN if [ -n "$GITHUB_TOKEN" ]; then git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"; fi
 
 # Copy dependency files and download modules
 COPY go.mod go.sum ./
@@ -68,7 +73,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 EXPOSE 8080
 
-CMD ["./payment-method-service"]
+CMD sh -c 'if [ -n "$GITHUB_TOKEN" ]; then git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"; fi && air -c .air.toml'
 
 # ==============================================
 # Stage 4: Migrate stage (Alpine + psql para Job K8s)
