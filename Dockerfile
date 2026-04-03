@@ -38,7 +38,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ==============================================
 # Stage 3: Development stage
 # ==============================================
-FROM alpine:3.19 AS development
+FROM golang:1.24-alpine AS development
 
 # Security: Create non-root user first
 RUN addgroup -g 1001 -S appgroup && \
@@ -50,19 +50,34 @@ RUN apk add --no-cache \
     tzdata \
     curl \
     postgresql-client \
+    git \
     && cp /usr/share/zoneinfo/UTC /etc/localtime \
     && echo "UTC" > /etc/timezone \
     && apk del tzdata
 
+# Install Air for hot reload
+RUN go install github.com/cosmtrek/air@v1.49.0
+
 WORKDIR /app
 
-# Copy binary and resources
-COPY --from=builder --chown=appuser:appgroup /app/payment-method-service ./
-COPY --from=builder --chown=appuser:appgroup /app/migrations ./migrations/
-COPY --from=builder --chown=appuser:appgroup /app/seeds ./seeds/
+# Configure private Go modules
+ARG GITHUB_TOKEN
+ENV GOPRIVATE=github.com/mercadocercano/*
+RUN if [ -n "$GITHUB_TOKEN" ]; then git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"; fi
 
-# Make binary executable
-RUN chmod +x ./payment-method-service
+# Copy go mod files first (for better caching)
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Create necessary directories and set permissions
+RUN mkdir -p tmp logs /go/pkg/mod && \
+    chmod -R 777 /go/pkg && \
+    chown -R appuser:appgroup /app tmp logs
+
+# Copy source code with correct ownership
+COPY --chown=appuser:appgroup . .
 
 # Switch to non-root user
 USER appuser
@@ -73,7 +88,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 EXPOSE 8080
 
-CMD ["./payment-method-service"]
+CMD sh -c 'if [ -n "$GITHUB_TOKEN" ]; then git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"; fi && air -c .air.toml'
 
 # ==============================================
 # Stage 4: Migrate stage (Alpine + psql para Job K8s)
