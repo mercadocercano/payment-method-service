@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/hornosg/go-shared/infrastructure/response"
 )
 
 // PaymentMethodHandler maneja las peticiones HTTP relacionadas con métodos de pago
@@ -31,13 +32,13 @@ func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
 	// Extraer tenant ID del header
 	tenantIDStr := c.GetHeader("X-Tenant-ID")
 	if tenantIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "X-Tenant-ID header is required"})
+		response.JSON(c, http.StatusBadRequest, "X-Tenant-ID header is required")
 		return
 	}
 
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
+		response.JSON(c, http.StatusBadRequest, "invalid tenant_id format")
 		return
 	}
 
@@ -45,7 +46,7 @@ func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
 	paymentMethodIDStr := c.Param("id")
 	paymentMethodID, err := uuid.Parse(paymentMethodIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payment method id format"})
+		response.JSON(c, http.StatusBadRequest, "invalid payment method id format")
 		return
 	}
 
@@ -53,10 +54,10 @@ func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
 	paymentMethod, err := h.getByIDUseCase.Execute(paymentMethodID, tenantID)
 	if err != nil {
 		if err.Error() == "payment method not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "payment method not found"})
+			response.JSON(c, http.StatusNotFound, "payment method not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.JSON(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -68,13 +69,13 @@ func (h *PaymentMethodHandler) List(c *gin.Context) {
 	// Extraer tenant ID del header
 	tenantIDStr := c.GetHeader("X-Tenant-ID")
 	if tenantIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "X-Tenant-ID header is required"})
+		response.JSON(c, http.StatusBadRequest, "X-Tenant-ID header is required")
 		return
 	}
 
 	tenantID, err := uuid.Parse(tenantIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
+		response.JSON(c, http.StatusBadRequest, "invalid tenant_id format")
 		return
 	}
 
@@ -83,11 +84,11 @@ func (h *PaymentMethodHandler) List(c *gin.Context) {
 	activeOnly, _ := strconv.ParseBool(activeOnlyStr)
 
 	// Ejecutar caso de uso
-	response, err := h.listUseCase.Execute(tenantID, activeOnly)
+	result, err := h.listUseCase.Execute(tenantID, activeOnly)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.JSON(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, result)
 }
