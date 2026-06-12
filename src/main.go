@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
@@ -8,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/hornosg/go-shared/infrastructure/env"
 	tenantmw "github.com/hornosg/go-shared/infrastructure/middleware"
-	_ "github.com/lib/pq"
+	"github.com/hornosg/go-shared/infrastructure/postgres"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	paymentMethodConfig "payment_method/src/payment_method/infrastructure/config"
@@ -88,16 +89,22 @@ func setupDatabase() (*sql.DB, error) {
 	dbname := env.Get("DB_NAME", "payment_method_db")
 	sslmode := env.Get("DB_SSLMODE", "disable")
 
-	dsn := "host=" + host + " port=" + port + " user=" + user + " password=" + password + " dbname=" + dbname + " sslmode=" + sslmode
-
-	db, err := sql.Open("postgres", dsn)
+	db, err := postgres.Connect(postgres.Config{
+		Host:     host,
+		Port:     port,
+		User:     user,
+		Password: password,
+		DBName:   dbname,
+		SSLMode:  sslmode,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
+	postgres.StartPoolMonitor(context.Background(), db, postgres.MonitorOptions{
+		Service: "payment-method-service",
+		DBName:  dbname,
+	})
 
 	log.Println("Successfully connected to database")
 	return db, nil
