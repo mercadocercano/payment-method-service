@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: payment-method-service
+  version: 1.0.0
+  description: >-
+    API de métodos de pago (solo lectura) para POS multi-tenant.
+    Expone métodos de pago globales (tenant_id NULL) y específicos por tenant.
+
+servers:
+  - url: /api/v1
+    description: Base URL para la API v1
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT para autenticación (validado por el middleware TenantValidation)
+    TenantHeader:
+      type: apiKey
+      in: header
+      name: X-Tenant-ID
+      description: ID del tenant (UUID) para operaciones multi-tenant
+
+  parameters:
+    TenantIdHeader:
+      name: X-Tenant-ID
+      in: header
+      description: ID del tenant (UUID). Requerido en todas las rutas de la API.
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    PaymentMethodResponse:
+      type: object
+      description: >-
+        DTO de respuesta para un método de pago.
+        Espeja src/payment_method/application/response.PaymentMethodResponse.
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: NULL = método global, NOT NULL = específico del tenant
+        code:
+          type: string
+          description: 'Código del método (ej: "cash", "debit_card")'
+        name:
+          type: string
+          description: 'Nombre legible (ej: "Efectivo", "Tarjeta de Débito")'
+        description:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        is_global:
+          type: boolean
+          description: Campo computado (true si tenant_id es NULL)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - code
+        - name
+        - is_active
+        - is_global
+        - created_at
+        - updated_at
+
+    ListPaymentMethodsResponse:
+      type: object
+      description: >-
+        DTO de respuesta para el listado de métodos de pago.
+        Espeja src/payment_method/application/response.ListPaymentMethodsResponse.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethodResponse'
+        total_count:
+          type: integer
+      required:
+        - items
+        - total_count
+
+    # Espeja github.com/hornosg/go-shared infrastructure/response.ErrorResponse
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+      required:
+        - error
+
+paths:
+  /payment-methods:
+    get:
+      summary: Listar métodos de pago del tenant
+      description: >-
+        Lista los métodos de pago disponibles para el tenant (globales + propios
+        del tenant). Por defecto sólo devuelve los activos.
+      tags: [PaymentMethods]
+      security:
+        - BearerAuth: []
+          TenantHeader: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: active_only
+          in: query
+          description: "Devolver sólo métodos activos (default: true)"
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Lista de métodos de pago
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListPaymentMethodsResponse'
+        '400':
+          description: Header X-Tenant-ID ausente o con formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token JWT ausente o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /payment-methods/{id}:
+    get:
+      summary: Obtener método de pago por ID
+      description: Obtiene un método de pago específico del tenant por su ID.
+      tags: [PaymentMethods]
+      security:
+        - BearerAuth: []
+          TenantHeader: []
+      parameters:
+        - $ref: '#/components/parameters/TenantIdHeader'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Método de pago encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentMethodResponse'
+        '400':
+          description: Header X-Tenant-ID ausente/ inválido o ID de método con formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token JWT ausente o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Método de pago no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # /health y /metrics se sirven en la raíz del servidor, fuera del prefijo /api/v1.
+  /health:
+    servers:
+      - url: /
+        description: Raíz del servidor (fuera de /api/v1)
+    get:
+      summary: Health check
+      description: Endpoint público de estado del servicio (sin autenticación).
+      tags: [System]
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: up
+                  service:
+                    type: string
+                    example: payment-method
+
+  /metrics:
+    servers:
+      - url: /
+        description: Raíz del servidor (fuera de /api/v1)
+    get:
+      summary: Métricas Prometheus
+      description: >-
+        Endpoint público de métricas en formato Prometheus (sin autenticación).
+        Sólo disponible si PROMETHEUS_ENABLED=true. Servido en la raíz (/metrics),
+        fuera del prefijo /api/v1.
+      tags: [System]
+      responses:
+        '200':
+          description: Métricas en formato de exposición Prometheus
+          content:
+            text/plain:
+              schema:
+                type: string
