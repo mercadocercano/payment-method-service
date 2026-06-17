@@ -14,7 +14,7 @@ import (
 func TestGetPaymentMethodByID_WithValidID_ReturnsPaymentMethod(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	pm := testutil.GlobalCashMethod()
@@ -38,7 +38,7 @@ func TestGetPaymentMethodByID_WithValidID_ReturnsPaymentMethod(t *testing.T) {
 func TestGetPaymentMethodByID_WithTenantSpecificMethod_ReturnsNonGlobal(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	pm := testutil.TenantDebitCardMethod(tenantID)
@@ -59,7 +59,7 @@ func TestGetPaymentMethodByID_WithTenantSpecificMethod_ReturnsNonGlobal(t *testi
 func TestGetPaymentMethodByID_WithNilTenantID_ReturnsError(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	// Act
 	result, err := uc.Execute(uuid.New(), uuid.Nil)
@@ -74,7 +74,7 @@ func TestGetPaymentMethodByID_WithNilTenantID_ReturnsError(t *testing.T) {
 func TestGetPaymentMethodByID_WithNonExistentID_ReturnsNotFoundError(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	nonExistentID := uuid.New()
@@ -94,7 +94,7 @@ func TestGetPaymentMethodByID_WithNonExistentID_ReturnsNotFoundError(t *testing.
 func TestGetPaymentMethodByID_WithRepositoryError_ReturnsError(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	pmID := uuid.New()
@@ -115,7 +115,7 @@ func TestGetPaymentMethodByID_WithRepositoryError_ReturnsError(t *testing.T) {
 func TestGetPaymentMethodByID_WithDescription_MapsDescriptionCorrectly(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewGetPaymentMethodByIDUseCase(mockRepo)
+	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	desc := "Pago en efectivo en moneda local"

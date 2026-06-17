@@ -15,7 +15,7 @@ import (
 func TestListPaymentMethods_WithValidTenantID_ReturnsMethods(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	methods := []*entity.PaymentMethod{
@@ -39,7 +39,7 @@ func TestListPaymentMethods_WithValidTenantID_ReturnsMethods(t *testing.T) {
 func TestListPaymentMethods_WithActiveOnlyTrue_PassesFilterToRepo(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 
@@ -59,7 +59,7 @@ func TestListPaymentMethods_WithActiveOnlyTrue_PassesFilterToRepo(t *testing.T) 
 func TestListPaymentMethods_WithActiveOnlyFalse_IncludesInactiveMethods(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	methods := []*entity.PaymentMethod{
@@ -82,7 +82,7 @@ func TestListPaymentMethods_WithActiveOnlyFalse_IncludesInactiveMethods(t *testi
 func TestListPaymentMethods_WithNilTenantID_ReturnsError(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	// Act
 	result, err := uc.Execute(uuid.Nil, true)
@@ -97,7 +97,7 @@ func TestListPaymentMethods_WithNilTenantID_ReturnsError(t *testing.T) {
 func TestListPaymentMethods_WithRepositoryError_ReturnsError(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	repoErr := errors.New("database connection failed")
@@ -117,7 +117,7 @@ func TestListPaymentMethods_WithRepositoryError_ReturnsError(t *testing.T) {
 func TestListPaymentMethods_WithEmptyResult_ReturnsEmptyList(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 
@@ -137,7 +137,7 @@ func TestListPaymentMethods_WithEmptyResult_ReturnsEmptyList(t *testing.T) {
 func TestListPaymentMethods_MapsIsGlobalCorrectly(t *testing.T) {
 	// Arrange
 	mockRepo := new(mocks.MockPaymentMethodRepository)
-	uc := NewListPaymentMethodsUseCase(mockRepo)
+	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	tenantID := uuid.New()
 	methods := []*entity.PaymentMethod{
