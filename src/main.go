@@ -36,6 +36,7 @@ func main() {
 			"/api/v1/health",
 			"/metrics",
 		},
+		RejectMissingTenant: true, // cierre de bypass de tenant (rollout verificado 2026-06-19)
 	}))
 
 	// Configurar Prometheus metrics si está habilitado
