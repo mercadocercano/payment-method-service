@@ -10,9 +10,12 @@ import (
 	"github.com/hornosg/go-shared/infrastructure/env"
 	tenantmw "github.com/hornosg/go-shared/infrastructure/middleware"
 	"github.com/hornosg/go-shared/infrastructure/postgres"
+	sharedmigrate "github.com/hornosg/go-shared/migrate"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	paymentMethodConfig "payment_method/src/payment_method/infrastructure/config"
+
+	paymentroot "payment_method"
 )
 
 func main() {
@@ -22,6 +25,12 @@ func main() {
 		log.Fatalf("Error connecting to database: %v", err)
 	}
 	defer db.Close()
+
+	// Migraciones versionadas in-app (ADR-001) — fail-fast antes de servir tráfico.
+	dbName := env.Get("DB_NAME", "payment_method_db")
+	if err := sharedmigrate.RunMigrations(db, paymentroot.MigrationsFS, dbName); err != nil {
+		log.Fatalf("Error running migrations: %v", err)
+	}
 
 	// Configuración del router
 	router := gin.New()
