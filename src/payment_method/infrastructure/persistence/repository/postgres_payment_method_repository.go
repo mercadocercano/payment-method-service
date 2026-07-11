@@ -24,9 +24,10 @@ func NewPostgresPaymentMethodRepository(db *sql.DB) port.PaymentMethodRepository
 // FindByID busca un método de pago por su ID (global o del tenant)
 func (r *PostgresPaymentMethodRepository) FindByID(id uuid.UUID, tenantID uuid.UUID) (*entity.PaymentMethod, error) {
 	query := `
-		SELECT id, tenant_id, code, name, description, is_active, created_at, updated_at
-		FROM payment_methods
-		WHERE id = $1 AND (tenant_id IS NULL OR tenant_id = $2)
+		SELECT pm.id, pm.tenant_id, g.code, g.name, g.description, pm.is_active, pm.created_at, pm.updated_at
+		FROM payment_methods pm
+		JOIN global_payment_methods g ON g.id = pm.global_payment_method_id
+		WHERE pm.id = $1 AND pm.tenant_id = $2
 	`
 
 	var pm entity.PaymentMethod
@@ -52,25 +53,26 @@ func (r *PostgresPaymentMethodRepository) FindByID(id uuid.UUID, tenantID uuid.U
 	return &pm, nil
 }
 
-// FindAll retorna todos los métodos de pago disponibles para un tenant
-// (incluye métodos globales + específicos del tenant)
+// FindAll retorna los métodos del plano tenant, con code/name resueltos del catálogo global.
 func (r *PostgresPaymentMethodRepository) FindAll(tenantID uuid.UUID, activeOnly bool) ([]*entity.PaymentMethod, error) {
-	// Query base: métodos globales + métodos del tenant
+	// Plano tenant (mapping) + JOIN al catálogo global para traer code/name (MC-E37 T6).
 	query := `
-		SELECT id, tenant_id, code, name, description, is_active, created_at, updated_at
-		FROM payment_methods
-		WHERE (tenant_id IS NULL OR tenant_id = $1)
+		SELECT pm.id, pm.tenant_id, g.code, g.name, g.description, pm.is_active, pm.created_at, pm.updated_at
+		FROM payment_methods pm
+		JOIN global_payment_methods g ON g.id = pm.global_payment_method_id
+		WHERE pm.tenant_id = $1
 	`
 
 	args := []interface{}{tenantID}
 
-	// Filtrar solo activos si se solicita
+	// Disponible = habilitado por el tenant Y activo a nivel global (un método retirado a nivel
+	// global desaparece para todos los tenants, aunque lo tuvieran habilitado).
 	if activeOnly {
-		query += ` AND is_active = true`
+		query += ` AND pm.is_active = true AND g.is_active = true`
 	}
 
-	// Ordenar por: globales primero, luego por nombre
-	query += ` ORDER BY (tenant_id IS NULL) DESC, name ASC`
+	// Orden por nombre del catálogo global.
+	query += ` ORDER BY g.name ASC`
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
