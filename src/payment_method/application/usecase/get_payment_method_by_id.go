@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"payment_method/src/payment_method/application/response"
 	"payment_method/src/payment_method/domain/port"
@@ -30,14 +31,14 @@ func (uc *GetPaymentMethodByIDUseCase) logEvent(e port.PaymentEvent) {
 }
 
 // Execute ejecuta el caso de uso
-func (uc *GetPaymentMethodByIDUseCase) Execute(id uuid.UUID, tenantID uuid.UUID) (*response.PaymentMethodResponse, error) {
+func (uc *GetPaymentMethodByIDUseCase) Execute(ctx context.Context, id uuid.UUID, tenantID uuid.UUID) (*response.PaymentMethodResponse, error) {
 	// Validar que el tenant ID no esté vacío
 	if tenantID == uuid.Nil {
 		return nil, errors.New("tenant_id is required")
 	}
 
 	// Buscar el método de pago
-	paymentMethod, err := uc.repository.FindByID(id, tenantID)
+	paymentMethod, err := uc.repository.FindByID(ctx, id, tenantID)
 	if err != nil {
 		uc.logEvent(port.PaymentEvent{
 			Event:           "payment.method_fetch_failed",

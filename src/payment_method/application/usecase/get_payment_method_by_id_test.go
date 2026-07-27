@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"payment_method/src/payment_method/domain/port/mocks"
 	"payment_method/src/payment_method/testutil"
@@ -22,7 +23,7 @@ func TestGetPaymentMethodByID_WithValidID_ReturnsPaymentMethod(t *testing.T) {
 	mockRepo.On("FindByID", pm.ID, tenantID).Return(pm, nil)
 
 	// Act
-	result, err := uc.Execute(pm.ID, tenantID)
+	result, err := uc.Execute(context.Background(), pm.ID, tenantID)
 
 	// Assert
 	require.NoError(t, err)
@@ -46,7 +47,7 @@ func TestGetPaymentMethodByID_WithTenantSpecificMethod_ReturnsNonGlobal(t *testi
 	mockRepo.On("FindByID", pm.ID, tenantID).Return(pm, nil)
 
 	// Act
-	result, err := uc.Execute(pm.ID, tenantID)
+	result, err := uc.Execute(context.Background(), pm.ID, tenantID)
 
 	// Assert
 	require.NoError(t, err)
@@ -62,7 +63,7 @@ func TestGetPaymentMethodByID_WithNilTenantID_ReturnsError(t *testing.T) {
 	uc := NewGetPaymentMethodByIDUseCase(mockRepo, nil)
 
 	// Act
-	result, err := uc.Execute(uuid.New(), uuid.Nil)
+	result, err := uc.Execute(context.Background(), uuid.New(), uuid.Nil)
 
 	// Assert
 	require.Error(t, err)
@@ -82,7 +83,7 @@ func TestGetPaymentMethodByID_WithNonExistentID_ReturnsNotFoundError(t *testing.
 	mockRepo.On("FindByID", nonExistentID, tenantID).Return(nil, nil)
 
 	// Act
-	result, err := uc.Execute(nonExistentID, tenantID)
+	result, err := uc.Execute(context.Background(), nonExistentID, tenantID)
 
 	// Assert
 	require.Error(t, err)
@@ -103,7 +104,7 @@ func TestGetPaymentMethodByID_WithRepositoryError_ReturnsError(t *testing.T) {
 	mockRepo.On("FindByID", pmID, tenantID).Return(nil, repoErr)
 
 	// Act
-	result, err := uc.Execute(pmID, tenantID)
+	result, err := uc.Execute(context.Background(), pmID, tenantID)
 
 	// Assert
 	require.Error(t, err)
@@ -126,7 +127,7 @@ func TestGetPaymentMethodByID_WithDescription_MapsDescriptionCorrectly(t *testin
 	mockRepo.On("FindByID", pm.ID, tenantID).Return(pm, nil)
 
 	// Act
-	result, err := uc.Execute(pm.ID, tenantID)
+	result, err := uc.Execute(context.Background(), pm.ID, tenantID)
 
 	// Assert
 	require.NoError(t, err)

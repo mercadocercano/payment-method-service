@@ -29,10 +29,12 @@ func NewPaymentMethodHandler(
 
 // GetByID maneja GET /payment-methods/:id
 func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
-	// Extraer tenant ID del header
-	tenantIDStr := c.GetHeader("X-Tenant-ID")
+	// tenant_id SIEMPRE del contexto que dejó tenantmw.TenantValidation tras verificar el JWT
+	// (E26 T5, patrón E24 ledger / E25 sales) — nunca del header X-Tenant-ID crudo. Fail-closed:
+	// 401 antes de tocar el usecase si el claim no está (RLS sin app.tenant_id rechaza igual).
+	tenantIDStr := c.GetString("tenant_id")
 	if tenantIDStr == "" {
-		response.JSON(c, http.StatusBadRequest, "X-Tenant-ID header is required")
+		response.JSON(c, http.StatusUnauthorized, "tenant_id missing from request context")
 		return
 	}
 
@@ -51,7 +53,7 @@ func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
 	}
 
 	// Ejecutar caso de uso
-	paymentMethod, err := h.getByIDUseCase.Execute(paymentMethodID, tenantID)
+	paymentMethod, err := h.getByIDUseCase.Execute(c.Request.Context(), paymentMethodID, tenantID)
 	if err != nil {
 		if err.Error() == "payment method not found" {
 			response.JSON(c, http.StatusNotFound, "payment method not found")
@@ -66,10 +68,12 @@ func (h *PaymentMethodHandler) GetByID(c *gin.Context) {
 
 // List maneja GET /payment-methods
 func (h *PaymentMethodHandler) List(c *gin.Context) {
-	// Extraer tenant ID del header
-	tenantIDStr := c.GetHeader("X-Tenant-ID")
+	// tenant_id SIEMPRE del contexto que dejó tenantmw.TenantValidation tras verificar el JWT
+	// (E26 T5, patrón E24 ledger / E25 sales) — nunca del header X-Tenant-ID crudo. Fail-closed:
+	// 401 antes de tocar el usecase si el claim no está (RLS sin app.tenant_id rechaza igual).
+	tenantIDStr := c.GetString("tenant_id")
 	if tenantIDStr == "" {
-		response.JSON(c, http.StatusBadRequest, "X-Tenant-ID header is required")
+		response.JSON(c, http.StatusUnauthorized, "tenant_id missing from request context")
 		return
 	}
 
@@ -84,7 +88,7 @@ func (h *PaymentMethodHandler) List(c *gin.Context) {
 	activeOnly, _ := strconv.ParseBool(activeOnlyStr)
 
 	// Ejecutar caso de uso
-	result, err := h.listUseCase.Execute(tenantID, activeOnly)
+	result, err := h.listUseCase.Execute(c.Request.Context(), tenantID, activeOnly)
 	if err != nil {
 		response.JSON(c, http.StatusInternalServerError, err.Error())
 		return

@@ -20,6 +20,7 @@
 package persistence_test
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"testing"
@@ -109,7 +110,7 @@ func TestPaymentMethods_IsActive_PerTenantAndGlobalOverride(t *testing.T) {
 		t.Fatalf("disable A×gTest: %v", err)
 	}
 
-	aList, err := repo.FindAll(tenantA, true)
+	aList, err := repo.FindAll(context.Background(), tenantA, true)
 	if err != nil {
 		t.Fatalf("FindAll(A): %v", err)
 	}
@@ -120,7 +121,7 @@ func TestPaymentMethods_IsActive_PerTenantAndGlobalOverride(t *testing.T) {
 		t.Errorf("A: cash (habilitado) debería seguir listándose")
 	}
 
-	bList, err := repo.FindAll(tenantB, true)
+	bList, err := repo.FindAll(context.Background(), tenantB, true)
 	if err != nil {
 		t.Fatalf("FindAll(B): %v", err)
 	}
@@ -147,7 +148,7 @@ func TestPaymentMethods_IsActive_PerTenantAndGlobalOverride(t *testing.T) {
 		t.Fatalf("disable gTest global: %v", err)
 	}
 
-	bList2, err := repo.FindAll(tenantB, true)
+	bList2, err := repo.FindAll(context.Background(), tenantB, true)
 	if err != nil {
 		t.Fatalf("FindAll(B) tras retiro global: %v", err)
 	}

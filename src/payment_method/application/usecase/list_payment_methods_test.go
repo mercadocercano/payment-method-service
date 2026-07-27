@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"payment_method/src/payment_method/domain/entity"
 	"payment_method/src/payment_method/domain/port/mocks"
@@ -26,7 +27,7 @@ func TestListPaymentMethods_WithValidTenantID_ReturnsMethods(t *testing.T) {
 	mockRepo.On("FindAll", tenantID, true).Return(methods, nil)
 
 	// Act
-	result, err := uc.Execute(tenantID, true)
+	result, err := uc.Execute(context.Background(), tenantID, true)
 
 	// Assert
 	require.NoError(t, err)
@@ -48,7 +49,7 @@ func TestListPaymentMethods_WithActiveOnlyTrue_PassesFilterToRepo(t *testing.T) 
 	}, nil)
 
 	// Act
-	result, err := uc.Execute(tenantID, true)
+	result, err := uc.Execute(context.Background(), tenantID, true)
 
 	// Assert
 	require.NoError(t, err)
@@ -70,7 +71,7 @@ func TestListPaymentMethods_WithActiveOnlyFalse_IncludesInactiveMethods(t *testi
 	mockRepo.On("FindAll", tenantID, false).Return(methods, nil)
 
 	// Act
-	result, err := uc.Execute(tenantID, false)
+	result, err := uc.Execute(context.Background(), tenantID, false)
 
 	// Assert
 	require.NoError(t, err)
@@ -85,7 +86,7 @@ func TestListPaymentMethods_WithNilTenantID_ReturnsError(t *testing.T) {
 	uc := NewListPaymentMethodsUseCase(mockRepo, nil)
 
 	// Act
-	result, err := uc.Execute(uuid.Nil, true)
+	result, err := uc.Execute(context.Background(), uuid.Nil, true)
 
 	// Assert
 	require.Error(t, err)
@@ -105,7 +106,7 @@ func TestListPaymentMethods_WithRepositoryError_ReturnsError(t *testing.T) {
 	mockRepo.On("FindAll", tenantID, true).Return(nil, repoErr)
 
 	// Act
-	result, err := uc.Execute(tenantID, true)
+	result, err := uc.Execute(context.Background(), tenantID, true)
 
 	// Assert
 	require.Error(t, err)
@@ -124,7 +125,7 @@ func TestListPaymentMethods_WithEmptyResult_ReturnsEmptyList(t *testing.T) {
 	mockRepo.On("FindAll", tenantID, true).Return([]*entity.PaymentMethod{}, nil)
 
 	// Act
-	result, err := uc.Execute(tenantID, true)
+	result, err := uc.Execute(context.Background(), tenantID, true)
 
 	// Assert
 	require.NoError(t, err)
@@ -148,7 +149,7 @@ func TestListPaymentMethods_MapsIsGlobalCorrectly(t *testing.T) {
 	mockRepo.On("FindAll", tenantID, true).Return(methods, nil)
 
 	// Act
-	result, err := uc.Execute(tenantID, true)
+	result, err := uc.Execute(context.Background(), tenantID, true)
 
 	// Assert
 	require.NoError(t, err)
